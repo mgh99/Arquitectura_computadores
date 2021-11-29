@@ -88,6 +88,23 @@ void __atribute__((interrupt, no_auto_psv)) _T1Interrupt(void);
 void __atribute__((interrupt, no_auto_psv)) _U1RXInterrupt(void);
 void __atribute__((interrupt, no_auto_psv)) _U1TXInterrupt(void);
 
+vois timer1_config(void) {
+    T1CONbits.TON = 0; //stop timer
+    T1CONbits.TCS = 0; //internal clock
+    T1CONbits.TSYNC = 0; //synchronize external clock input  
+    T1CONbits.TCKPS = 3; //prescaler 256
+    T1CONbits.TSIDL = 0; //continue in idle mode
+
+    IPC0bits.T1IP = 5; //priority 5
+    IFS0bits.T1IF = 0; //clear interrupt flag
+    IEC0bits.T1IE = 0; //disable interrupt
+
+    PR1 = 0x0005; //period
+    TMR1 = 0; //reset timer
+
+    T1CONbits.TON = 1; //Inicializar el temporizador
+}
+
 //Funcion para configurar el tiempo en ms
 void delay_ms(unsigned long time_ms) 
 {
@@ -121,8 +138,8 @@ void uart_config(unsigned int baud)
     U1MODEbits.STSEL = 0;      //1 bit de stop al final de la trama de datos (8N1)
 
     //Configuración de registro de U1STA
-    U1STAbits.UTXISEL0 = 0;    //Tema insterrupciones (no hay que mirarlo aun)
-    U1STAbits.UTXISEL1 = 0;    //Tema insterrupciones (no hay que mirarlo aun)
+    U1STAbits.UTXISEL0 = 0;    //Tema insterrupciones
+    U1STAbits.UTXISEL1 = 0;    //Tema insterrupciones 
 
     U1STAbits.UTXINV = 0;      //El estado en reposo del pin de transmisión es High
     U1STAbits.UTXBRK = 0;      //No usamos trama de sincronización
@@ -136,10 +153,12 @@ void uart_config(unsigned int baud)
     U1BRG = baud;
 
     //Prioridades, flags e interrupciones correspondientes a la UART
+    //RX
     IPC2bits.U1RXIP = 6;      //U1RX con nivel de prioridad 6 (7 es el máximo)
-    IFS0bits.U1RXIF = 0;      //Resets Tx interrupción flag
-    IEC0bits.U1RXIE = 1;      //Enable Tx interrupción
+    IFS0bits.U1RXIF = 0;      //Resets Rx interrupción flag
+    IEC0bits.U1RXIE = 1;      //Enable Rx interrupción
 
+    //Tx
     IPC3bits.U1TXIP = 5;      //U1TX con nivel de prioridad 5 (6 es el máximo)
     IFS0bits.U1TXIF = 0;      //Resets Tx interrupción flag
     IEC0bits.U1TXIE = 1;      //Enable Tx interrupción
@@ -215,6 +234,11 @@ int main(void) {
     #endif
 
     AD1PCFGL = 0xFFFF; //Todos los pines como digitales
+    TRISAbits.TRISA0 = 0;
+    TRISBbits.TRISB3 = 0;
+    LATAbits.LATA0 = 0;
+    LATBbits.LATB3 = 0;
+
     uart_config(baud_9600);
     PR1 = 24999; //Tiempo de interrupcion de timer1 (1ms)
 
@@ -233,16 +257,81 @@ int main(void) {
                 IEC0bits.U1TXIE = 1; //Iniciamos una nueva transmisión
             }
 
-            if() {
-                +
+            if(!strcmp(((const char*) dataCMD_ISR), cmd2)) {
+                memset(txbuffer_ISR, '\0', sizeof(txbuffer_ISR)); //Resetear buffer con NULL
+                sprintf(txbuffer_ISR, "%c%c%c", 0x50, 0x00, 0xAA); //Enviamos un mensaje de respuesta
+                nextchar = 0; //Resetear contador de caracteres
+
+                if(U1STAbits.UTXBF) {
+                    IFS0bits.U1TXIF = 0; //Reseteo el flag de transmisión ISR
+                }
+
+                asm("nop");
+                IEC0bits.U1TXIE = 1; //Iniciamos una nueva transmisión
             }
+
+            if(!strcmp(((const char*) dataCMD_ISR), cmd3)) {
+                memset(txbuffer_ISR, '\0', sizeof(txbuffer_ISR)); //Resetear buffer con NULL
+                sprintf(txbuffer_ISR, "%c%c%c", 0x50, 0x01, 0xAA); //Enviamos un mensaje de respuesta
+                nextchar = 0; //Resetear contador de caracteres
+
+                if(U1STAbits.UTXBF) {
+                    IFS0bits.U1TXIF = 0; //Reseteo el flag de transmisión ISR
+                }
+
+                asm("nop");
+                IEC0bits.U1TXIE = 1; //Iniciamos una nueva transmisión
+            }
+
+            if(!strcmp(((const char*) dataCMD_ISR), cmd4)) {
+                memset(txbuffer_ISR, '\0', sizeof(txbuffer_ISR)); //Resetear buffer con NULL
+                sprintf(txbuffer_ISR, "%c%c%c", 0x50, 0x00, 0xAA); //Enviamos un mensaje de respuesta
+                nextchar = 0; //Resetear contador de caracteres
+
+                if(U1STAbits.UTXBF) {
+                    IFS0bits.U1TXIF = 0; //Reseteo el flag de transmisión ISR
+                }
+
+                asm("nop");
+                IEC0bits.U1TXIE = 1; //Iniciamos una nueva transmisión
+            }
+
+            if(!strcmp(((const char*) dataCMD_ISR), cmd5)) {
+                memset(txbuffer_ISR, '\0', sizeof(txbuffer_ISR)); //Resetear buffer con NULL
+                sprintf(txbuffer_ISR, "%c%c%c", 0x50, 0x01, 0xAA); //Enviamos un mensaje de respuesta
+                nextchar = 0; //Resetear contador de caracteres
+
+                if(U1STAbits.UTXBF) {
+                    IFS0bits.U1TXIF = 0; //Reseteo el flag de transmisión ISR
+                }
+
+                asm("nop");
+                IEC0bits.U1TXIE = 1; //Iniciamos una nueva transmisión
+            }
+
+            if(!strcmp(((const char*) dataCMD_ISR), cmd6)) {
+                memset(txbuffer_ISR, '\0', sizeof(txbuffer_ISR)); //Resetear buffer con NULL
+                sprintf(txbuffer_ISR, "%c%c%c", 0x50, 0x00, 0xAA); //Enviamos un mensaje de respuesta
+                nextchar = 0; //Resetear contador de caracteres
+
+                if(U1STAbits.UTXBF) {
+                    IFS0bits.U1TXIF = 0; //Reseteo el flag de transmisión ISR
+                }
+
+                asm("nop");
+                IEC0bits.U1TXIE = 1; //Iniciamos una nueva transmisión
+            } else {
+                //creo que tengo que añadir algo
+            }
+
+            memset(dataCMD_ISR, '\0', sizeof(dataCMD_ISR)); //Resetear buffer con NULL
+            data_count = 0;
+            comando_detectado = 0;
+
+        } else {
+            //creo que tengo que añadir algo
         }
+        delay_ms(100);
     }
-
-
-
-
-
-
     return 0;
 }
